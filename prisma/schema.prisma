@@ -1,0 +1,393 @@
+// Hill-Haat - Farm-to-Highway Marketplace for Northeast India
+// Production-grade database schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model - Farmers, Buyers, and Logistics Providers
+model User {
+  id            String    @id @default(cuid())
+  clerkId       String    @unique  // Clerk authentication ID
+  email         String    @unique
+  name          String
+  phone         String?
+  avatar        String?
+  role          UserRole  @default(BUYER)
+  district      String?
+  state         String?
+  address       String?
+  pincode       String?
+  
+  // Business Info
+  businessName  String?
+  description   String?
+  
+  // Verification status
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime?
+  
+  // Stats
+  totalSales    Int       @default(0)
+  totalPurchases Int      @default(0)
+  rating        Float     @default(0)
+  reviewCount   Int       @default(0)
+  
+  // Settings
+  notificationsEnabled Boolean @default(true)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  listings      Listing[]
+  ordersAsBuyer Order[]   @relation("BuyerOrders")
+  ordersAsSeller Order[]  @relation("SellerOrders")
+  deliveries    Delivery[]
+  reviews       Review[]
+  notifications Notification[]
+  cartItems     CartItem[]
+
+  @@index([clerkId])
+  @@index([email])
+  @@index([role])
+}
+
+enum UserRole {
+  FARMER
+  BUYER
+  LOGISTICS
+  ADMIN
+}
+
+// Product Listings
+model Listing {
+  id              String        @id @default(cuid())
+  title           String
+  description     String
+  category        Category
+  subcategory     String?
+  
+  // Pricing
+  price           Float
+  unit            String        @default("kg")
+  minOrder        Float         @default(1)
+  maxQuantity     Float?
+  
+  // Quality & Certification
+  quality         QualityGrade  @default(A)
+  isOrganic       Boolean       @default(false)
+  organicCertHash String?
+  isVerified      Boolean       @default(false)
+  
+  // Location
+  district        String
+  state           String
+  coordinates     String?       // "lat,lng" for geolocation
+  
+  // Availability
+  status          ListingStatus @default(ACTIVE)
+  availableFrom   DateTime?
+  availableUntil  DateTime?
+  harvestDate     DateTime?
+  
+  // Images
+  images          String?       // JSON array of image URLs
+  
+  // Stats
+  viewCount       Int           @default(0)
+  orderCount      Int           @default(0)
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  expiresAt       DateTime?
+  
+  // Relations
+  sellerId        String
+  seller          User          @relation(fields: [sellerId], references: [id])
+  orders          Order[]
+  reviews         Review[]
+  cartItems       CartItem[]
+
+  @@index([category])
+  @@index([status])
+  @@index([district])
+  @@index([createdAt])
+}
+
+enum Category {
+  VEGETABLES
+  FRUITS
+  SPICES
+  GRAINS
+  DAIRY
+  HERBS
+  BAMBOO_PRODUCTS
+  HANDICRAFTS
+  TEA
+  HONEY
+  OTHER
+}
+
+enum QualityGrade {
+  A_PLUS
+  A
+  B
+  C
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD_OUT
+  EXPIRED
+  SUSPENDED
+}
+
+// Orders
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique @default(cuid())
+  
+  // Participants
+  buyerId         String
+  buyer           User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  sellerId        String
+  seller          User        @relation("SellerOrders", fields: [sellerId], references: [id])
+  
+  // Product Details
+  listingId       String
+  listing         Listing     @relation(fields: [listingId], references: [id])
+  quantity        Float
+  unitPrice       Float
+  totalPrice      Float
+  
+  // Status
+  status          OrderStatus @default(PENDING)
+  paymentStatus   PaymentStatus @default(PENDING)
+  paymentMethod   String?
+  transactionId   String?
+  
+  // Delivery
+  deliveryAddress String
+  deliveryDistrict String
+  deliveryState   String
+  deliveryPincode String?
+  deliveryPhone   String
+  
+  // Timeline
+  confirmedAt     DateTime?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  cancellationReason String?
+  
+  // Notes
+  notes           String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  delivery        Delivery?
+  tracking        TrackingEvent[]
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+// Deliveries
+model Delivery {
+  id              String          @id @default(cuid())
+  orderId         String          @unique
+  order           Order           @relation(fields: [orderId], references: [id])
+  
+  // Rider
+  riderId         String
+  rider           User            @relation(fields: [riderId], references: [id])
+  
+  // Route
+  pickupLocation  String
+  dropLocation    String
+  estimatedDistance Float?
+  estimatedTime   Int?            // in minutes
+  
+  // Terrain awareness for hill regions
+  terrainType     TerrainType     @default(MIXED)
+  difficultyLevel Int             @default(1)    // 1-5 scale
+  
+  // Status
+  status          DeliveryStatus  @default(ASSIGNED)
+  assignedAt      DateTime?
+  pickedUpAt      DateTime?
+  completedAt     DateTime?
+  
+  // Tracking
+  currentLocation String?
+  lastLocationUpdate DateTime?
+  
+  // Earnings
+  baseFare        Float
+  terrainBonus    Float           @default(0)
+  totalEarnings   Float
+  
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([riderId])
+  @@index([status])
+}
+
+enum TerrainType {
+  PLAIN
+  HILLY
+  MOUNTAINOUS
+  MIXED
+}
+
+enum DeliveryStatus {
+  ASSIGNED
+  ACCEPTED
+  PICKED_UP
+  IN_TRANSIT
+  NEAR_DESTINATION
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+// Tracking Events
+model TrackingEvent {
+  id          String      @id @default(cuid())
+  orderId     String
+  order       Order       @relation(fields: [orderId], references: [id])
+  
+  status      String
+  location    String?
+  description String
+  timestamp   DateTime    @default(now())
+  
+  @@index([orderId])
+  @@index([timestamp])
+}
+
+// Reviews
+model Review {
+  id          String    @id @default(cuid())
+  rating      Int       // 1-5
+  comment     String?
+  
+  listingId   String
+  listing     Listing   @relation(fields: [listingId], references: [id])
+  
+  reviewerId  String
+  reviewer    User      @relation(fields: [reviewerId], references: [id])
+  
+  isVerified  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  
+  @@index([listingId])
+  @@index([reviewerId])
+}
+
+// Notifications
+model Notification {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  
+  type        NotificationType
+  title       String
+  message     String
+  data        String?           // JSON for additional data
+  
+  isRead      Boolean           @default(false)
+  readAt      DateTime?
+  
+  createdAt   DateTime          @default(now())
+  
+  @@index([userId])
+  @@index([isRead])
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_CONFIRMED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  NEW_MESSAGE
+  PRICE_DROP
+  LISTING_EXPIRING
+  PAYMENT_RECEIVED
+  DELIVERY_ASSIGNED
+  REVIEW_RECEIVED
+}
+
+// Contact Inquiries
+model Inquiry {
+  id          String    @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  subject     String
+  message     String
+  status      String    @default("PENDING")
+  repliedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  
+  @@index([status])
+}
+
+// App Configuration
+model AppConfig {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  value       String
+  description String?
+  updatedAt   DateTime  @updatedAt
+}
+
+// Shopping Cart
+model CartItem {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId   String
+  listing     Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  quantity    Float
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, listingId])
+  @@index([userId])
+}
