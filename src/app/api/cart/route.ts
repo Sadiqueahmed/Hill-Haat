@@ -1,6 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
+
+// Helper to get or create user
+async function getOrCreateUser(userId: string) {
+  let user = await db.user.findUnique({
+    where: { clerkId: userId },
+  });
+
+  if (!user) {
+    // Try to get user info from Clerk and create the user
+    try {
+      const client = await clerkClient();
+      const clerkUser = await client.users.getUser(userId);
+      
+      user = await db.user.create({
+        data: {
+          clerkId: userId,
+          email: clerkUser.emailAddresses[0]?.emailAddress || '',
+          name: clerkUser.fullName || clerkUser.firstName || 'User',
+          avatar: clerkUser.imageUrl,
+          role: 'BUYER',
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create user from Clerk:', error);
+      return null;
+    }
+  }
+
+  return user;
+}
 
 // GET /api/cart - Get user's cart
 export async function GET(request: NextRequest) {
@@ -11,12 +41,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { clerkId: userId },
-    });
+    const user = await getOrCreateUser(userId);
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Failed to get or create user' }, { status: 500 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -83,12 +111,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { clerkId: userId },
-    });
+    const user = await getOrCreateUser(userId);
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Failed to get or create user' }, { status: 500 });
     }
 
     const body = await request.json();
@@ -164,12 +190,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { clerkId: userId },
-    });
+    const user = await getOrCreateUser(userId);
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Failed to get or create user' }, { status: 500 });
     }
 
     const body = await request.json();
@@ -223,12 +247,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { clerkId: userId },
-    });
+    const user = await getOrCreateUser(userId);
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Failed to get or create user' }, { status: 500 });
     }
 
     const { searchParams } = new URL(request.url);

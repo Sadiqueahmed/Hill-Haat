@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -56,6 +56,7 @@ const navigation = [
   { name: 'Marketplace', href: '/?section=marketplace', icon: ShoppingBag },
   { name: 'Sell', href: '/?section=sell', icon: Sprout },
   { name: 'Orders', href: '/?section=orders', icon: Package },
+  { name: 'Logistics', href: '/?section=logistics', icon: Truck },
 ];
 
 interface LiveStats {
@@ -115,10 +116,20 @@ const api = async (endpoint: string, options?: RequestInit) => {
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { isSignedIn, user, isLoaded } = useUser();
+
+  // Handle search submission
+  const handleSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/?section=marketplace&search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchOpen(false);
+    }
+  }, [searchQuery, router]);
 
   // Live data state
   const [liveStats, setLiveStats] = useState<LiveStats | null>(null);
@@ -301,11 +312,11 @@ export function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 items-center gap-6">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-3 group shrink-0 mr-4">
             <div className="relative">
-              <Mountain className="h-8 w-8 text-emerald-600 transition-transform group-hover:scale-110" />
+              <Mountain className="h-9 w-9 text-emerald-600 transition-transform group-hover:scale-110" />
               <Leaf className="h-4 w-4 text-emerald-500 absolute -top-1 -right-1 animate-pulse" />
             </div>
             <div className="flex flex-col">
@@ -319,12 +330,12 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1 shrink-0">
             {navigation.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href.includes('section=') && typeof window !== 'undefined' && 
+              const isActive = pathname === item.href ||
+                (item.href.includes('section=') && typeof window !== 'undefined' &&
                  window.location.search.includes(item.href.split('=')[1]));
-              
+
               return (
                 <Link
                   key={item.name}
@@ -344,7 +355,7 @@ export function Header() {
           </nav>
 
           {/* Search Bar - Desktop */}
-          <div className="hidden lg:flex items-center flex-1 max-w-md mx-8">
+          <form onSubmit={handleSearch} className="hidden lg:flex items-center flex-1 max-w-lg mx-6">
             <div className="relative w-full group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
               <Input
@@ -355,15 +366,20 @@ export function Header() {
                 className="pl-10 pr-4 h-10 bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:bg-white transition-all"
               />
               {searchQuery && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border p-4 z-50">
-                  <p className="text-sm text-muted-foreground">Press Enter to search for "{searchQuery}"</p>
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border p-3 z-50">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm text-muted-foreground">Search for "<span className="font-medium text-foreground">{searchQuery}</span>"</p>
+                    <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                      Search
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
+          </form>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 shrink-0 ml-auto">
             {/* Mobile Search Toggle */}
             <Button
               variant="ghost"
@@ -375,180 +391,207 @@ export function Header() {
             </Button>
 
             {/* Notifications Dropdown */}
-            {isSignedIn && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    {liveStats?.notificationCount ? (
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-red-500 animate-pulse">
-                        {liveStats.notificationCount > 9 ? '9+' : liveStats.notificationCount}
-                      </Badge>
-                    ) : null}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 p-0">
-                  <div className="flex items-center justify-between p-4 border-b">
-                    <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
-                    {liveStats?.notificationCount ? (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-xs h-auto py-1 px-2"
-                        onClick={markAllNotificationsRead}
-                      >
-                        <CheckCheck className="h-3 w-3 mr-1" />
-                        Mark all read
-                      </Button>
-                    ) : null}
-                  </div>
-                  <ScrollArea className="h-80">
-                    {loadingNotifications ? (
-                      <div className="p-4 space-y-3">
-                        {[...Array(3)].map((_, i) => (
-                          <div key={i} className="flex gap-3">
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                            <div className="flex-1 space-y-2">
-                              <Skeleton className="h-4 w-3/4" />
-                              <Skeleton className="h-3 w-1/2" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : notifications.length > 0 ? (
-                      <div className="divide-y">
-                        {notifications.map((notification) => (
-                          <div
-                            key={notification.id}
-                            className={cn(
-                              'p-4 hover:bg-muted/50 cursor-pointer transition-colors',
-                              !notification.isRead && 'bg-emerald-50/50'
-                            )}
-                            onClick={() => markNotificationRead(notification.id)}
-                          >
-                            <div className="flex gap-3">
-                              <div className="flex-shrink-0">
-                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                  {getNotificationIcon(notification.type)}
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium truncate">{notification.title}</p>
-                                  {!notification.isRead && (
-                                    <span className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
-                                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {formatTimeAgo(notification.createdAt)}
-                                </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {isSignedIn && liveStats?.notificationCount ? (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-red-500 animate-pulse">
+                      {liveStats.notificationCount > 9 ? '9+' : liveStats.notificationCount}
+                    </Badge>
+                  ) : null}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0">
+                {isSignedIn ? (
+                  <>
+                    <div className="flex items-center justify-between p-4 border-b">
+                      <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
+                      {liveStats?.notificationCount ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-auto py-1 px-2"
+                          onClick={markAllNotificationsRead}
+                        >
+                          <CheckCheck className="h-3 w-3 mr-1" />
+                          Mark all read
+                        </Button>
+                      ) : null}
+                    </div>
+                    <ScrollArea className="h-80">
+                      {loadingNotifications ? (
+                        <div className="p-4 space-y-3">
+                          {[...Array(3)].map((_, i) => (
+                            <div key={i} className="flex gap-3">
+                              <Skeleton className="h-10 w-10 rounded-full" />
+                              <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-3/4" />
+                                <Skeleton className="h-3 w-1/2" />
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-8 text-center">
-                        <Bell className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground">No notifications yet</p>
-                      </div>
-                    )}
-                  </ScrollArea>
-                  <div className="p-2 border-t">
-                    <Link href="/?section=notifications">
-                      <Button variant="ghost" className="w-full text-sm">
-                        View all notifications
-                      </Button>
-                    </Link>
+                          ))}
+                        </div>
+                      ) : notifications.length > 0 ? (
+                        <div className="divide-y">
+                          {notifications.map((notification) => (
+                            <div
+                              key={notification.id}
+                              className={cn(
+                                'p-4 hover:bg-muted/50 cursor-pointer transition-colors',
+                                !notification.isRead && 'bg-emerald-50/50'
+                              )}
+                              onClick={() => markNotificationRead(notification.id)}
+                            >
+                              <div className="flex gap-3">
+                                <div className="flex-shrink-0">
+                                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                    {getNotificationIcon(notification.type)}
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium truncate">{notification.title}</p>
+                                    {!notification.isRead && (
+                                      <span className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+                                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {formatTimeAgo(notification.createdAt)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center">
+                          <Bell className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground">No notifications yet</p>
+                        </div>
+                      )}
+                    </ScrollArea>
+                    <div className="p-2 border-t">
+                      <Link href="/?section=notifications">
+                        <Button variant="ghost" className="w-full text-sm">
+                          View all notifications
+                        </Button>
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-6 text-center">
+                    <Bell className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm font-medium mb-2">Stay Updated</p>
+                    <p className="text-xs text-muted-foreground mb-4">Sign in to see your notifications</p>
+                    <SignInButton mode="modal">
+                      <Button className="bg-emerald-600 hover:bg-emerald-700">Sign In</Button>
+                    </SignInButton>
                   </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Cart Dropdown */}
-            {isSignedIn && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative hidden sm:flex">
-                    <ShoppingCart className="h-5 w-5" />
-                    {liveStats?.cartCount ? (
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-emerald-500">
-                        {liveStats.cartCount > 9 ? '9+' : liveStats.cartCount}
-                      </Badge>
-                    ) : null}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 p-0">
-                  <div className="flex items-center justify-between p-4 border-b">
-                    <DropdownMenuLabel className="p-0">Your Cart</DropdownMenuLabel>
-                    {liveStats?.cartCount ? (
-                      <Badge variant="secondary">{liveStats.cartCount} items</Badge>
-                    ) : null}
-                  </div>
-                  <ScrollArea className="h-64">
-                    {loadingCart ? (
-                      <div className="p-4 space-y-3">
-                        {[...Array(2)].map((_, i) => (
-                          <div key={i} className="flex gap-3">
-                            <Skeleton className="h-16 w-16 rounded-lg" />
-                            <div className="flex-1 space-y-2">
-                              <Skeleton className="h-4 w-3/4" />
-                              <Skeleton className="h-4 w-1/2" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : cartItems.length > 0 ? (
-                      <div className="divide-y">
-                        {cartItems.map((item) => (
-                          <div key={item.id} className="p-4 hover:bg-muted/50 transition-colors">
-                            <div className="flex gap-3">
-                              <div className="h-16 w-16 rounded-lg bg-gradient-to-br from-emerald-100 to-teal-50 flex items-center justify-center flex-shrink-0">
-                                <Package className="h-6 w-6 text-emerald-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{item.listing.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Qty: {item.quantity} {item.listing.unit}
-                                </p>
-                                <p className="text-sm font-semibold text-emerald-600 mt-1">
-                                  ₹{(item.listing.price * item.quantity).toLocaleString()}
-                                </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <ShoppingCart className="h-5 w-5" />
+                  {isSignedIn && liveStats?.cartCount ? (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-emerald-500">
+                      {liveStats.cartCount > 9 ? '9+' : liveStats.cartCount}
+                    </Badge>
+                  ) : null}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0">
+                {isSignedIn ? (
+                  <>
+                    <div className="flex items-center justify-between p-4 border-b">
+                      <DropdownMenuLabel className="p-0">Your Cart</DropdownMenuLabel>
+                      {liveStats?.cartCount ? (
+                        <Badge variant="secondary">{liveStats.cartCount} items</Badge>
+                      ) : null}
+                    </div>
+                    <ScrollArea className="h-64">
+                      {loadingCart ? (
+                        <div className="p-4 space-y-3">
+                          {[...Array(2)].map((_, i) => (
+                            <div key={i} className="flex gap-3">
+                              <Skeleton className="h-16 w-16 rounded-lg" />
+                              <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-3/4" />
+                                <Skeleton className="h-4 w-1/2" />
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-8 text-center">
-                        <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground">Your cart is empty</p>
-                        <Link href="/?section=marketplace">
-                          <Button variant="outline" size="sm" className="mt-3">
-                            Start Shopping
+                          ))}
+                        </div>
+                      ) : cartItems.length > 0 ? (
+                        <div className="divide-y">
+                          {cartItems.map((item) => (
+                            <div key={item.id} className="p-4 hover:bg-muted/50 transition-colors">
+                              <div className="flex gap-3">
+                                <div className="h-16 w-16 rounded-lg bg-gradient-to-br from-emerald-100 to-teal-50 flex items-center justify-center flex-shrink-0">
+                                  <Package className="h-6 w-6 text-emerald-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{item.listing.title}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Qty: {item.quantity} {item.listing.unit}
+                                  </p>
+                                  <p className="text-sm font-semibold text-emerald-600 mt-1">
+                                    ₹{(item.listing.price * item.quantity).toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center">
+                          <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground">Your cart is empty</p>
+                          <Link href="/?section=marketplace">
+                            <Button variant="outline" size="sm" className="mt-3">
+                              Start Shopping
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
+                    </ScrollArea>
+                    {cartItems.length > 0 && (
+                      <div className="p-4 border-t bg-muted/30">
+                        <div className="flex justify-between mb-3">
+                          <span className="text-sm text-muted-foreground">Subtotal</span>
+                          <span className="font-semibold">₹{cartTotal.toLocaleString()}</span>
+                        </div>
+                        <Link href="/?section=marketplace" className="block">
+                          <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+                            Proceed to Checkout
                           </Button>
                         </Link>
                       </div>
                     )}
-                  </ScrollArea>
-                  {cartItems.length > 0 && (
-                    <div className="p-4 border-t bg-muted/30">
-                      <div className="flex justify-between mb-3">
-                        <span className="text-sm text-muted-foreground">Subtotal</span>
-                        <span className="font-semibold">₹{cartTotal.toLocaleString()}</span>
-                      </div>
-                      <Link href="/?section=marketplace" className="block">
-                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                          Proceed to Checkout
-                        </Button>
-                      </Link>
+                  </>
+                ) : (
+                  <div className="p-6 text-center">
+                    <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm font-medium mb-2">Your Cart</p>
+                    <p className="text-xs text-muted-foreground mb-4">Sign in to view your cart and start shopping</p>
+                    <div className="flex flex-col gap-2">
+                      <SignInButton mode="modal">
+                        <Button className="bg-emerald-600 hover:bg-emerald-700">Sign In</Button>
+                      </SignInButton>
+                      <SignUpButton mode="modal">
+                        <Button variant="outline">Create Account</Button>
+                      </SignUpButton>
                     </div>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Auth Section */}
             {isLoaded && (

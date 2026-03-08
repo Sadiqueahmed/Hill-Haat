@@ -58,7 +58,7 @@ export function HeroSection() {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="h-12 px-8 border-emerald-200 hover:bg-emerald-50">
+              <Button asChild variant="outline" size="lg" className="h-12 px-8 border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">
                 <Link href="/sell">
                   Start Selling
                 </Link>

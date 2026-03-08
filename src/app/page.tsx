@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -52,6 +53,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { CATEGORY_LABELS, QUALITY_LABELS, NE_STATES, NE_DISTRICTS, ORDER_STATUS_LABELS } from '@/types';
 import { HomeSection } from '@/components/sections/HomeSection';
+import { LogisticsSection } from '@/components/sections/LogisticsSection';
 
 // Types
 type Category = keyof typeof CATEGORY_LABELS;
@@ -209,6 +211,8 @@ type OrderFormData = z.infer<typeof orderSchema>;
 export default function HomePage() {
   // Auth state
   const { isSignedIn, user: clerkUser, isLoaded } = useUser();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   
   // UI state
   const [activeSection, setActiveSection] = useState('home');
@@ -287,6 +291,26 @@ export default function HomePage() {
     }
     syncUser();
   }, [isSignedIn, clerkUser, isLoaded]);
+
+  // Sync activeSection with URL params
+  useEffect(() => {
+    const section = searchParams.get('section');
+    if (section && ['home', 'marketplace', 'sell', 'orders', 'profile', 'logistics', 'wishlist', 'settings', 'notifications'].includes(section)) {
+      setActiveSection(section);
+    }
+    const search = searchParams.get('search');
+    if (search) {
+      setSearchQuery(search);
+    }
+  }, [searchParams]);
+
+  // Update URL when section changes
+  const handleSectionChange = useCallback((section: string) => {
+    setActiveSection(section);
+    const url = new URL(window.location.href);
+    url.searchParams.set('section', section);
+    router.replace(url.pathname + url.search);
+  }, [router]);
 
   // Fetch listings
   const fetchListings = useCallback(async () => {
@@ -433,7 +457,8 @@ export default function HomePage() {
       toast.success('Added to cart!');
       fetchCart();
     } catch (error) {
-      toast.error('Failed to add to cart');
+      const message = error instanceof Error ? error.message : 'Failed to add to cart';
+      toast.error(message);
     }
   };
 
@@ -446,7 +471,8 @@ export default function HomePage() {
       });
       fetchCart();
     } catch (error) {
-      toast.error('Failed to update cart');
+      const message = error instanceof Error ? error.message : 'Failed to update cart';
+      toast.error(message);
     }
   };
 
@@ -457,7 +483,8 @@ export default function HomePage() {
       toast.success('Removed from cart');
       fetchCart();
     } catch (error) {
-      toast.error('Failed to remove item');
+      const message = error instanceof Error ? error.message : 'Failed to remove item';
+      toast.error(message);
     }
   };
 
@@ -561,13 +588,14 @@ export default function HomePage() {
               { id: 'marketplace', label: 'Marketplace', icon: null },
               { id: 'orders', label: 'My Orders', icon: null },
               { id: 'sell', label: 'Sell Products', icon: null },
+              { id: 'logistics', label: 'Logistics', icon: null },
               { id: 'profile', label: 'Profile', icon: null },
             ].map((item) => (
               <Button
                 key={item.id}
                 variant={activeSection === item.id ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => handleSectionChange(item.id)}
                 className={cn(
                   'whitespace-nowrap',
                   activeSection === item.id && 'bg-emerald-600 hover:bg-emerald-700'
@@ -576,24 +604,6 @@ export default function HomePage() {
                 {item.label}
               </Button>
             ))}
-            
-            {/* Cart Button */}
-            {isSignedIn && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCart(true)}
-                className="ml-auto gap-2"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                Cart
-                {cartSummary.itemCount > 0 && (
-                  <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center bg-emerald-600">
-                    {cartSummary.itemCount}
-                  </Badge>
-                )}
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -601,7 +611,7 @@ export default function HomePage() {
       <AnimatePresence mode="wait">
         {/* HOME SECTION */}
         {activeSection === 'home' && (
-          <HomeSection onNavigate={setActiveSection} />
+          <HomeSection onNavigate={handleSectionChange} />
         )}
 
         {/* MARKETPLACE SECTION */}
@@ -1438,6 +1448,11 @@ export default function HomePage() {
               )}
             </div>
           </motion.div>
+        )}
+
+        {/* LOGISTICS SECTION */}
+        {activeSection === 'logistics' && (
+          <LogisticsSection />
         )}
       </AnimatePresence>
 

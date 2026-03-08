@@ -42,7 +42,11 @@ export type DeliveryStatus =
   | 'FAILED' 
   | 'CANCELLED';
 
-export type TerrainType = 'PLAIN' | 'HILLY' | 'MOUNTAINOUS' | 'MIXED';
+export type TerrainType = 'PLAIN' | 'HILLY' | 'MOUNTAINOUS' | 'VALLEY' | 'MIXED' | 'RIVERINE';
+
+export type VehicleType = 'BIKE' | 'AUTO' | 'SMALL_TRUCK' | 'LARGE_TRUCK' | 'PICKUP' | 'TRACTOR';
+
+export type HazardType = 'LANDSLIDE' | 'FOG' | 'POOR_ROAD' | 'FLOOD' | 'LANDSLIDE_PRONE' | 'RESTRICTED_AREA';
 
 export interface User {
   id: string;
@@ -221,3 +225,26 @@ export const NE_DISTRICTS: Record<string, string[]> = {
   'Sikkim': ['East Sikkim', 'North Sikkim', 'South Sikkim', 'West Sikkim', 'Pakyong', 'Soreng'],
   'Tripura': ['Dhalai', 'Gomati', 'Khowai', 'North Tripura', 'Sepahijala', 'South Tripura', 'Unakoti', 'West Tripura'],
 };
+
+// Terrain Information
+export const TERRAIN_INFO: Record<TerrainType, { name: string; multiplier: number; description: string }> = {
+  PLAIN: { name: 'Plain', multiplier: 1.0, description: 'Flat terrain, easy access' },
+  HILLY: { name: 'Hilly', multiplier: 1.3, description: 'Moderate elevation, winding roads' },
+  MOUNTAINOUS: { name: 'Mountainous', multiplier: 1.6, description: 'High altitude, challenging roads' },
+  VALLEY: { name: 'Valley', multiplier: 1.2, description: 'Low lying areas, potential flooding' },
+  MIXED: { name: 'Mixed', multiplier: 1.4, description: 'Varied terrain conditions' },
+  RIVERINE: { name: 'Riverine', multiplier: 1.3, description: 'River crossing areas' },
+};
+
+// Vehicle Information
+export const VEHICLE_INFO: Record<VehicleType, { name: string; capacity: number; costPerKm: number }> = {
+  BIKE: { name: 'Bike', capacity: 50, costPerKm: 5 },
+  AUTO: { name: 'Auto Rickshaw', capacity: 200, costPerKm: 8 },
+  SMALL_TRUCK: { name: 'Small Truck', capacity: 1000, costPerKm: 12 },
+  LARGE_TRUCK: { name: 'Large Truck', capacity: 5000, costPerKm: 18 },
+  PICKUP: { name: 'Pickup', capacity: 500, costPerKm: 10 },
+  TRACTOR: { name: 'Tractor', capacity: 2000, costPerKm: 15 },
+};
+
+// Northeast Indian States
+export const NE_STATES_LIST = NE_STATES;

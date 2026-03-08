@@ -15,17 +15,17 @@ import {
 
 const footerLinks = {
   marketplace: [
-    { name: 'Browse Products', href: '/marketplace' },
-    { name: 'Sell Your Produce', href: '/sell' },
-    { name: 'Track Orders', href: '/logistics' },
-    { name: 'Become a Seller', href: '/sell' },
+    { name: 'Browse Products', href: '/?section=marketplace' },
+    { name: 'Sell Your Produce', href: '/?section=sell' },
+    { name: 'Track Orders', href: '/?section=logistics' },
+    { name: 'Become a Seller', href: '/?section=sell' },
   ],
   categories: [
-    { name: 'Spices', href: '/marketplace?category=SPICES' },
-    { name: 'Fruits', href: '/marketplace?category=FRUITS' },
-    { name: 'Vegetables', href: '/marketplace?category=VEGETABLES' },
-    { name: 'Grains & Cereals', href: '/marketplace?category=GRAINS' },
-    { name: 'Tea & Beverages', href: '/marketplace?category=TEA' },
+    { name: 'Spices', href: '/?section=marketplace&category=SPICES' },
+    { name: 'Fruits', href: '/?section=marketplace&category=FRUITS' },
+    { name: 'Vegetables', href: '/?section=marketplace&category=VEGETABLES' },
+    { name: 'Grains & Cereals', href: '/?section=marketplace&category=GRAINS' },
+    { name: 'Tea & Beverages', href: '/?section=marketplace&category=TEA' },
   ],
   support: [
     { name: 'Help Center', href: '#' },
@@ -172,7 +172,7 @@ export function Footer() {
             {states.map((state) => (
               <Link
                 key={state}
-                href={`/marketplace?state=${encodeURIComponent(state)}`}
+                href={`/?section=marketplace&state=${encodeURIComponent(state)}`}
                 className="px-3 py-1.5 bg-slate-800 rounded-full text-sm hover:bg-emerald-600 hover:text-white transition-colors"
               >
                 {state}

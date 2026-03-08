@@ -1,6 +1,36 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
+
+// Helper to get or create user
+async function getOrCreateUser(userId: string) {
+  let user = await db.user.findUnique({
+    where: { clerkId: userId },
+  });
+
+  if (!user) {
+    // Try to get user info from Clerk and create the user
+    try {
+      const client = await clerkClient();
+      const clerkUser = await client.users.getUser(userId);
+      
+      user = await db.user.create({
+        data: {
+          clerkId: userId,
+          email: clerkUser.emailAddresses[0]?.emailAddress || '',
+          name: clerkUser.fullName || clerkUser.firstName || 'User',
+          avatar: clerkUser.imageUrl,
+          role: 'BUYER',
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create user from Clerk:', error);
+      return null;
+    }
+  }
+
+  return user;
+}
 
 export async function GET() {
   try {
@@ -28,19 +58,7 @@ export async function GET() {
     let cartCount = 0;
 
     if (userId) {
-      const user = await db.user.findUnique({
-        where: { clerkId: userId },
-        include: {
-          _count: {
-            select: {
-              listings: true,
-              ordersAsBuyer: true,
-              ordersAsSeller: true,
-              cartItems: true,
-            },
-          },
-        },
-      });
+      const user = await getOrCreateUser(userId);
 
       if (user) {
         // Get notification count
@@ -67,11 +85,18 @@ export async function GET() {
           _sum: { totalPrice: true },
         });
 
+        // Get counts separately
+        const [listingsCount, ordersAsBuyerCount, ordersAsSellerCount] = await Promise.all([
+          db.listing.count({ where: { sellerId: user.id } }),
+          db.order.count({ where: { buyerId: user.id } }),
+          db.order.count({ where: { sellerId: user.id } }),
+        ]);
+
         userStats = {
-          totalListings: user._count.listings,
-          totalOrders: user._count.ordersAsBuyer + user._count.ordersAsSeller,
-          buyerOrders: user._count.ordersAsBuyer,
-          sellerOrders: user._count.ordersAsSeller,
+          totalListings: listingsCount,
+          totalOrders: ordersAsBuyerCount + ordersAsSellerCount,
+          buyerOrders: ordersAsBuyerCount,
+          sellerOrders: ordersAsSellerCount,
           totalRevenue: sellerRevenue._sum.totalPrice || 0,
           totalSpending: buyerSpending._sum.totalPrice || 0,
           rating: user.rating,
