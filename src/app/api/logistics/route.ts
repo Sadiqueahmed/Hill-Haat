@@ -11,7 +11,7 @@ import {
   type RouteSegment,
   type HazardZone,
 } from '@/lib/terrain-routing';
-import { getDistrictData, getStateData, NE_STATES_DATA } from '@/lib/ne-india-data';
+import { getDistrictByName, getStateByName, NE_STATES_DATA, getDistrictsByState } from '@/lib/ne-india-data';
 
 // GET /api/logistics - Get logistics info
 export async function GET(request: NextRequest) {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'State parameter required' }, { status: 400 });
       }
       
-      const stateData = getStateData(state);
+      const stateData = getStateByName(state);
       if (!stateData) {
         return NextResponse.json({ error: 'State not found' }, { status: 404 });
       }
@@ -110,8 +110,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Get district data
-      const pickupData = getDistrictData(pickupState, pickupDistrict);
-      const deliveryData = getDistrictData(deliveryState, deliveryDistrict);
+      const pickupData = getDistrictByName(pickupDistrict, pickupState);
+      const deliveryData = getDistrictByName(deliveryDistrict, deliveryState);
 
       if (!pickupData || !deliveryData) {
         return NextResponse.json({ error: 'District not found' }, { status: 404 });

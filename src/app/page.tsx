@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -207,8 +207,8 @@ const orderSchema = z.object({
 
 type OrderFormData = z.infer<typeof orderSchema>;
 
-// Main Component
-export default function HomePage() {
+// Main Content Component (wrapped in Suspense)
+function HomePageContent() {
   // Auth state
   const { isSignedIn, user: clerkUser, isLoaded } = useUser();
   const searchParams = useSearchParams();
@@ -1764,6 +1764,39 @@ export default function HomePage() {
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+// Loading fallback for Suspense
+function HomePageLoading() {
+  return (
+    <div className="flex flex-col min-h-screen">
+      {/* Navigation Pills Skeleton */}
+      <div className="sticky top-[73px] z-40 bg-white border-b shadow-sm">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-9 w-24 rounded-md" />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading Hill-Haat...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Default export with Suspense wrapper
+export default function HomePage() {
+  return (
+    <Suspense fallback={<HomePageLoading />}>
+      <HomePageContent />
+    </Suspense>
   );
 }
 
