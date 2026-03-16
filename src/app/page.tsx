@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -223,8 +223,20 @@ const orderSchema = z.object({
 
 type OrderFormData = z.infer<typeof orderSchema>;
 
-// Main Component
-export default function HomePage() {
+// Loading fallback component
+function HomePageLoading() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin h-12 w-12 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4" />
+        <p className="text-muted-foreground">Loading Hill-Haat...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main Content Component (uses useSearchParams)
+function HomePageContent() {
   // Auth state
   const { isSignedIn, user: clerkUser, isLoaded } = useUser();
 
@@ -2784,5 +2796,14 @@ function OrderTracking({ order }: { order: Order }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main export with Suspense wrapper for useSearchParams
+export default function HomePage() {
+  return (
+    <Suspense fallback={<HomePageLoading />}>
+      <HomePageContent />
+    </Suspense>
   );
 }
