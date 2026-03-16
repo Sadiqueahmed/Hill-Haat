@@ -1,8 +1,11 @@
 ### 🌐 Live Application Preview
 
 <a href="https://my-project-five-sandy.vercel.app/">
-  <img src="https://api.microlink.io?url=https%3A%2F%2Fmy-project-five-sandy.vercel.app&screenshot=true&meta=false&embed=screenshot.url" alt="Project Live Preview" width="100%" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+  <img src="https://api.microlink.io?url=https%3A%2F%2Fmy-project-five-sandy.vercel.app&screenshot=true&meta=false&embed=screenshot.url" alt="Project Live Preview" width="100%" style="border-radius: 12px; border: 1px solid #eaeaea;" />
 </a>
+
+> [!TIP]
+> **Check out the live build:** [Explore Project Live](https://my-project-five-sandy.vercel.app/) 🚀
 
 > [!NOTE]
 > **Live View:** [Explore the project here](https://my-project-five-sandy.vercel.app/) — *Hosted on Vercel Edge*
