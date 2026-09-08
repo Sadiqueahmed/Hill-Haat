@@ -1,5 +1,7 @@
 # ⛰️ Hill-Haat
 
+Hill-Haat is an offline-first, decentralized marketplace built to connect consumers and local sellers directly in the Northeast. Designed as a Progressive Web App (PWA), it overcomes regional connectivity and logistical challenges using background data synchronization and custom terrain-aware routing for accurate delivery estimates.
+
 **Offline-First Decentralized Marketplace for Hilly Terrains**
 
 *Connecting consumers and local sellers directly with terrain-aware logistics and PWA resilience*
