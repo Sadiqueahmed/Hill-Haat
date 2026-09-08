@@ -1,10 +1,3 @@
-Before I provide the complete file, here is a quick correction for your prompt:
-Instead of writing *"write down a proper readme.md file"*, it is best to capitalize the first letter of the sentence and the file name itself, like this: **"Write down a proper README.md file."**
-
-Here is the fully fleshed-out, highly stylized `README.md` for **Hill-Haat**, modeled directly after the excellent structure of your Lairik-Pulse reference. You can copy and paste this entirely!
-
----
-
 # ⛰️ Hill-Haat
 
 **Offline-First Decentralized Marketplace for Hilly Terrains**
