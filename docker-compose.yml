@@ -1,0 +1,16 @@
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hillhaat
+      POSTGRES_PASSWORD: hillhaat_dev_password
+      POSTGRES_DB: hillhaat
+    ports:
+      - "5433:5432"
+    volumes:
+      - hillhaat_pgdata:/var/lib/postgresql/data
+
+volumes:
+  hillhaat_pgdata:

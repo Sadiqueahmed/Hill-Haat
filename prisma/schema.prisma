@@ -1,57 +1,48 @@
-// Hill-Haat - Farm-to-Highway Marketplace for Northeast India
-// Production-grade database schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// User model - Farmers, Buyers, and Logistics Providers
 model User {
-  id            String    @id @default(cuid())
-  clerkId       String    @unique  // Clerk authentication ID
-  email         String    @unique
-  name          String
-  phone         String?
-  avatar        String?
-  role          UserRole  @default(BUYER)
-  district      String?
-  state         String?
-  address       String?
-  pincode       String?
-  
-  // Business Info
-  businessName  String?
-  description   String?
-  
-  // Verification status
-  isVerified    Boolean   @default(false)
-  verifiedAt    DateTime?
-  
-  // Stats
-  totalSales    Int       @default(0)
-  totalPurchases Int      @default(0)
-  rating        Float     @default(0)
-  reviewCount   Int       @default(0)
-  
-  // Settings
-  notificationsEnabled Boolean @default(true)
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  clerkId               String    @unique
+  email                 String    @unique
+  name                  String
+  phone                 String?
+  avatar                String?
+  role                  UserRole  @default(BUYER)
+  district              String?
+  state                 String?
+  address               String?
+  pincode               String?
 
-  // Relations
-  listings      Listing[]
-  ordersAsBuyer Order[]   @relation("BuyerOrders")
-  ordersAsSeller Order[]  @relation("SellerOrders")
-  deliveries    Delivery[]
-  reviews       Review[]
-  notifications Notification[]
-  cartItems     CartItem[]
+  businessName          String?
+  description           String?
+
+  isVerified            Boolean   @default(false)
+  verifiedAt            DateTime?
+
+  totalSales            Int       @default(0)
+  totalPurchases        Int       @default(0)
+  rating                Decimal   @default(0) @db.Decimal(3, 2)
+  reviewCount           Int       @default(0)
+
+  notificationsEnabled  Boolean   @default(true)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  listings              Listing[]
+  ordersAsBuyer         Order[]      @relation("BuyerOrders")
+  ordersAsSeller        Order[]      @relation("SellerOrders")
+  deliveries            Delivery[]
+  reviews               Review[]
+  notifications         Notification[]
+  cartItems             CartItem[]
 
   @@index([clerkId])
   @@index([email])
@@ -65,51 +56,45 @@ enum UserRole {
   ADMIN
 }
 
-// Product Listings
 model Listing {
   id              String        @id @default(cuid())
   title           String
   description     String
   category        Category
   subcategory     String?
-  
-  // Pricing
-  price           Float
+
+  price           Decimal       @db.Decimal(10, 2)
   unit            String        @default("kg")
-  minOrder        Float         @default(1)
-  maxQuantity     Float?
-  
-  // Quality & Certification
+  minOrder        Decimal       @default(1) @db.Decimal(10, 2)
+  maxQuantity     Decimal?      @db.Decimal(10, 2)
+  stockQuantity   Decimal       @default(0) @db.Decimal(10, 2)
+
   quality         QualityGrade  @default(A)
   isOrganic       Boolean       @default(false)
   organicCertHash String?
   isVerified      Boolean       @default(false)
-  
-  // Location
+
   district        String
   state           String
-  coordinates     String?       // "lat,lng" for geolocation
-  
-  // Availability
+  latitude        Float?
+  longitude       Float?
+
   status          ListingStatus @default(ACTIVE)
   availableFrom   DateTime?
   availableUntil  DateTime?
   harvestDate     DateTime?
-  
-  // Images
-  images          String?       // JSON array of image URLs
-  
-  // Stats
+
+  images          String[]
+
   viewCount       Int           @default(0)
   orderCount      Int           @default(0)
-  
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   expiresAt       DateTime?
-  
-  // Relations
+
   sellerId        String
-  seller          User          @relation(fields: [sellerId], references: [id])
+  seller          User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   orders          Order[]
   reviews         Review[]
   cartItems       CartItem[]
@@ -118,6 +103,7 @@ model Listing {
   @@index([status])
   @@index([district])
   @@index([createdAt])
+  @@index([sellerId])
 }
 
 enum Category {
@@ -149,53 +135,46 @@ enum ListingStatus {
   SUSPENDED
 }
 
-// Orders
 model Order {
-  id              String      @id @default(cuid())
-  orderNumber     String      @unique @default(cuid())
-  
-  // Participants
-  buyerId         String
-  buyer           User        @relation("BuyerOrders", fields: [buyerId], references: [id])
-  sellerId        String
-  seller          User        @relation("SellerOrders", fields: [sellerId], references: [id])
-  
-  // Product Details
-  listingId       String
-  listing         Listing     @relation(fields: [listingId], references: [id])
-  quantity        Float
-  unitPrice       Float
-  totalPrice      Float
-  
-  // Status
-  status          OrderStatus @default(PENDING)
-  paymentStatus   PaymentStatus @default(PENDING)
-  paymentMethod   String?
-  transactionId   String?
-  
-  // Delivery
-  deliveryAddress String
-  deliveryDistrict String
-  deliveryState   String
-  deliveryPincode String?
-  deliveryPhone   String
-  
-  // Timeline
-  confirmedAt     DateTime?
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
-  cancelledAt     DateTime?
-  cancellationReason String?
-  
-  // Notes
-  notes           String?
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
-  // Relations
-  delivery        Delivery?
-  tracking        TrackingEvent[]
+  id                  String        @id @default(cuid())
+  orderNumber         String        @unique @default(cuid())
+
+  buyerId             String
+  buyer               User          @relation("BuyerOrders", fields: [buyerId], references: [id])
+  sellerId            String
+  seller              User          @relation("SellerOrders", fields: [sellerId], references: [id])
+
+  listingId           String
+  listing             Listing       @relation(fields: [listingId], references: [id])
+  quantity            Decimal       @db.Decimal(10, 2)
+  unitPrice           Decimal       @db.Decimal(10, 2)
+  totalPrice          Decimal       @db.Decimal(10, 2)
+
+  status              OrderStatus   @default(PENDING)
+  paymentStatus       PaymentStatus @default(PENDING)
+  paymentMethod       String?
+  razorpayOrderId     String?       @unique
+  razorpayPaymentId   String?       @unique
+
+  deliveryAddress     String
+  deliveryDistrict    String
+  deliveryState       String
+  deliveryPincode     String?
+  deliveryPhone       String
+
+  confirmedAt         DateTime?
+  shippedAt           DateTime?
+  deliveredAt         DateTime?
+  cancelledAt         DateTime?
+  cancellationReason  String?
+
+  notes               String?
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  delivery            Delivery?
+  tracking            TrackingEvent[]
 
   @@index([buyerId])
   @@index([sellerId])
@@ -223,44 +202,37 @@ enum PaymentStatus {
   PARTIALLY_REFUNDED
 }
 
-// Deliveries
 model Delivery {
-  id              String          @id @default(cuid())
-  orderId         String          @unique
-  order           Order           @relation(fields: [orderId], references: [id])
-  
-  // Rider
-  riderId         String
-  rider           User            @relation(fields: [riderId], references: [id])
-  
-  // Route
-  pickupLocation  String
-  dropLocation    String
-  estimatedDistance Float?
-  estimatedTime   Int?            // in minutes
-  
-  // Terrain awareness for hill regions
-  terrainType     TerrainType     @default(MIXED)
-  difficultyLevel Int             @default(1)    // 1-5 scale
-  
-  // Status
-  status          DeliveryStatus  @default(ASSIGNED)
-  assignedAt      DateTime?
-  pickedUpAt      DateTime?
-  completedAt     DateTime?
-  
-  // Tracking
-  currentLocation String?
-  lastLocationUpdate DateTime?
-  
-  // Earnings
-  baseFare        Float
-  terrainBonus    Float           @default(0)
-  totalEarnings   Float
-  
-  notes           String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                  String          @id @default(cuid())
+  orderId             String          @unique
+  order               Order           @relation(fields: [orderId], references: [id])
+
+  riderId             String
+  rider               User            @relation(fields: [riderId], references: [id])
+
+  pickupLocation      String
+  dropLocation        String
+  estimatedDistance   Float?
+  estimatedTime       Int?
+
+  terrainType         TerrainType     @default(MIXED)
+  difficultyLevel     Int             @default(1)
+
+  status              DeliveryStatus  @default(ASSIGNED)
+  assignedAt          DateTime?
+  pickedUpAt          DateTime?
+  completedAt         DateTime?
+
+  currentLocation     String?
+  lastLocationUpdate  DateTime?
+
+  baseFare            Decimal         @db.Decimal(10, 2)
+  terrainBonus        Decimal         @default(0) @db.Decimal(10, 2)
+  totalEarnings       Decimal         @db.Decimal(10, 2)
+
+  notes               String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   @@index([riderId])
   @@index([status])
@@ -284,56 +256,54 @@ enum DeliveryStatus {
   CANCELLED
 }
 
-// Tracking Events
 model TrackingEvent {
-  id          String      @id @default(cuid())
+  id          String    @id @default(cuid())
   orderId     String
-  order       Order       @relation(fields: [orderId], references: [id])
-  
+  order       Order     @relation(fields: [orderId], references: [id])
+
   status      String
   location    String?
   description String
-  timestamp   DateTime    @default(now())
-  
+  timestamp   DateTime  @default(now())
+
   @@index([orderId])
   @@index([timestamp])
 }
 
-// Reviews
 model Review {
   id          String    @id @default(cuid())
-  rating      Int       // 1-5
+  rating      Int
   comment     String?
-  
+
   listingId   String
   listing     Listing   @relation(fields: [listingId], references: [id])
-  
+
   reviewerId  String
   reviewer    User      @relation(fields: [reviewerId], references: [id])
-  
+
   isVerified  Boolean   @default(false)
   createdAt   DateTime  @default(now())
-  
+
+  @@unique([listingId, reviewerId])
   @@index([listingId])
   @@index([reviewerId])
 }
 
-// Notifications
 model Notification {
   id          String            @id @default(cuid())
   userId      String
   user        User              @relation(fields: [userId], references: [id])
-  
+
   type        NotificationType
   title       String
   message     String
-  data        String?           // JSON for additional data
-  
+  data        Json?
+
   isRead      Boolean           @default(false)
   readAt      DateTime?
-  
+
   createdAt   DateTime          @default(now())
-  
+
   @@index([userId])
   @@index([isRead])
 }
@@ -352,7 +322,6 @@ enum NotificationType {
   REVIEW_RECEIVED
 }
 
-// Contact Inquiries
 model Inquiry {
   id          String    @id @default(cuid())
   name        String
@@ -363,11 +332,10 @@ model Inquiry {
   status      String    @default("PENDING")
   repliedAt   DateTime?
   createdAt   DateTime  @default(now())
-  
+
   @@index([status])
 }
 
-// App Configuration
 model AppConfig {
   id          String    @id @default(cuid())
   key         String    @unique
@@ -376,15 +344,14 @@ model AppConfig {
   updatedAt   DateTime  @updatedAt
 }
 
-// Shopping Cart
 model CartItem {
   id          String    @id @default(cuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   listingId   String
   listing     Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  quantity    Float
-  
+  quantity    Decimal   @db.Decimal(10, 2)
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

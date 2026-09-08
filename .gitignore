@@ -51,3 +51,10 @@ server.log
 /skills/
 # clerk configuration (can include secrets)
 /.clerk/
+
+# database
+db/*.db
+db/*.db-journal
+
+# docker
+docker-compose.override.yml
