@@ -47,8 +47,12 @@ export function PWAProvider({ children }: PWAProviderProps) {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   // Register service worker
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !('serviceWorker' in navigator) ||
+      process.env.NODE_ENV !== 'production'
+    ) {
       return;
     }
 

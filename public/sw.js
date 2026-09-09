@@ -3,14 +3,13 @@
  * Provides offline support, caching strategies, and push notifications
  */
 
-const CACHE_NAME = 'hill-haat-v1';
-const STATIC_CACHE_NAME = 'hill-haat-static-v1';
-const DYNAMIC_CACHE_NAME = 'hill-haat-dynamic-v1';
-const API_CACHE_NAME = 'hill-haat-api-v1';
+const CACHE_NAME = 'hill-haat-v2';
+const STATIC_CACHE_NAME = 'hill-haat-static-v2';
+const DYNAMIC_CACHE_NAME = 'hill-haat-dynamic-v2';
+const API_CACHE_NAME = 'hill-haat-api-v2';
 
 // Static assets to cache on install
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
@@ -117,8 +116,7 @@ function isApiRequest(url) {
  */
 function isStaticAsset(url) {
   const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2'];
-  return staticExtensions.some(ext => url.pathname.endsWith(ext)) || 
-         url.pathname === '/';
+  return staticExtensions.some(ext => url.pathname.endsWith(ext));
 }
 
 /**

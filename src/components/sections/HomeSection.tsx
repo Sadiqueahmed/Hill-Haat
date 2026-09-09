@@ -101,7 +101,7 @@ export function HomeSection({ onNavigate }: HomeSectionProps) {
       .map(([category, label]) => ({
         category: category as Category,
         label,
-        count: stats[category] || Math.floor(Math.random() * 50) + 10,
+                count: stats[category] || 0,
         icon: getCategoryIcon(category),
         color: getCategoryColor(category),
       }))
