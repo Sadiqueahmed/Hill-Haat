@@ -77,9 +77,9 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // Calculate totals
+    // Calculate totals — Prisma Decimal fields must be converted to Number before arithmetic
     const subtotal = cartItems.reduce(
-      (acc, item) => acc + item.listing.price * item.quantity,
+      (acc, item) => acc + Number(item.listing.price) * Number(item.quantity),
       0
     );
 
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       // Update quantity
       const updatedItem = await db.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + (quantity || 1) },
+        data: { quantity: Number(existingItem.quantity) + (quantity || 1) },
         include: { listing: true },
       });
 

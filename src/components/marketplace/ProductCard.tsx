@@ -14,11 +14,12 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Listing, CATEGORY_LABELS, QUALITY_LABELS } from '@/types';
+import { CATEGORY_LABELS, QUALITY_LABELS } from '@/types';
 import { cn } from '@/lib/utils';
+import { SerializedListing } from '@/lib/listings-query';
 
 interface ProductCardProps {
-  listing: Listing;
+  listing: SerializedListing;
   index?: number;
 }
 

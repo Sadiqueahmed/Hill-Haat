@@ -53,7 +53,7 @@ import { toast } from 'sonner';
 
 const navigation = [
   { name: 'Home', href: '/', icon: null },
-  { name: 'Marketplace', href: '/?section=marketplace', icon: ShoppingBag },
+  { name: 'Marketplace', href: '/marketplace', icon: ShoppingBag },
   { name: 'Sell', href: '/?section=sell', icon: Sprout },
   { name: 'Orders', href: '/?section=orders', icon: Package },
   { name: 'Logistics', href: '/?section=logistics', icon: Truck },
@@ -126,7 +126,7 @@ export function Header() {
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/?section=marketplace&search=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/marketplace?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchOpen(false);
     }
   }, [searchQuery, router]);

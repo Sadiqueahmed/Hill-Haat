@@ -3,117 +3,34 @@ import { db } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server';
 import { ListingStatus } from '@prisma/client';
 
+import { fetchListings } from '@/lib/listings-query';
+import { Category } from '@prisma/client';
+
 // GET /api/listings - Get all listings with filters
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
-    const state = searchParams.get('state');
-    const district = searchParams.get('district');
-    const search = searchParams.get('search');
-    const minPrice = searchParams.get('minPrice');
-    const maxPrice = searchParams.get('maxPrice');
-    const isOrganic = searchParams.get('isOrganic');
-    const isVerified = searchParams.get('isVerified');
-    const sellerId = searchParams.get('sellerId');
-    const sortBy = searchParams.get('sortBy') || 'createdAt';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
 
-    const where: Record<string, unknown> = {
-      status: ListingStatus.ACTIVE,
-    };
-
-    if (category) {
-      where.category = category;
-    }
-
-    if (state) {
-      where.state = state;
-    }
-
-    if (district) {
-      where.district = district;
-    }
-
-    if (sellerId) {
-      where.sellerId = sellerId;
-    }
-
-    if (search) {
-      where.OR = [
-        { title: { contains: search } },
-        { description: { contains: search } },
-      ];
-    }
-
-    if (minPrice || maxPrice) {
-      where.price = {};
-      if (minPrice) {
-        (where.price as Record<string, number>).gte = parseFloat(minPrice);
-      }
-      if (maxPrice) {
-        (where.price as Record<string, number>).lte = parseFloat(maxPrice);
-      }
-    }
-
-    if (isOrganic === 'true') {
-      where.isOrganic = true;
-    }
-
-    if (isVerified === 'true') {
-      where.isVerified = true;
-    }
-
-    const listings = await db.listing.findMany({
-      where,
-      include: {
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            isVerified: true,
-            rating: true,
-            role: true,
-            district: true,
-            state: true,
-          },
-        },
-        reviews: {
-          select: {
-            rating: true,
-          },
-        },
-      },
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
-      take: limit,
-      skip: offset,
+    const result = await fetchListings({
+      category: (searchParams.get('category') as Category) || undefined,
+      state: searchParams.get('state') || undefined,
+      district: searchParams.get('district') || undefined,
+      search: searchParams.get('search') || undefined,
+      minPrice: searchParams.get('minPrice') ? parseFloat(searchParams.get('minPrice')!) : undefined,
+      maxPrice: searchParams.get('maxPrice') ? parseFloat(searchParams.get('maxPrice')!) : undefined,
+      isOrganic: searchParams.get('isOrganic') === 'true',
+      isVerified: searchParams.get('isVerified') === 'true',
+      sellerId: searchParams.get('sellerId') || undefined,
+      sortBy: (searchParams.get('sortBy') as 'createdAt' | 'price' | 'viewCount') || 'createdAt',
+      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
+      limit: parseInt(searchParams.get('limit') || '20'),
+      offset: parseInt(searchParams.get('offset') || '0'),
     });
-
-    // Calculate average rating for each listing
-    const listingsWithRating = listings.map((listing) => ({
-      ...listing,
-      avgRating: listing.reviews.length > 0
-        ? listing.reviews.reduce((acc, r) => acc + r.rating, 0) / listing.reviews.length
-        : 0,
-      reviewCount: listing.reviews.length,
-    }));
-
-    const total = await db.listing.count({ where });
 
     return NextResponse.json({
       success: true,
-      data: listingsWithRating,
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
-      },
+      data: result.listings,
+      pagination: result.pagination,
     });
   } catch (error) {
     console.error('Error fetching listings:', error);
@@ -159,11 +76,13 @@ export async function POST(request: NextRequest) {
         organicCertHash: body.organicCertHash,
         district: body.district,
         state: body.state,
-        coordinates: body.coordinates,
+        latitude: body.latitude ? parseFloat(body.latitude) : null,
+        longitude: body.longitude ? parseFloat(body.longitude) : null,
+        stockQuantity: body.stockQuantity ? parseFloat(body.stockQuantity) : 0,
         harvestDate: body.harvestDate ? new Date(body.harvestDate) : null,
         availableFrom: body.availableFrom ? new Date(body.availableFrom) : null,
         availableUntil: body.availableUntil ? new Date(body.availableUntil) : null,
-        images: body.images ? JSON.stringify(body.images) : null,
+        images: Array.isArray(body.images) ? body.images : [],
         sellerId: user.id,
       },
       include: {
